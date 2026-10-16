@@ -1,5 +1,4 @@
 const express = require('express');
-const cheerio = require('cheerio');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -11,58 +10,50 @@ app.get('/', (req, res) => {
   res.send(`
     <div style="font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
       <h2>🇮🇳 India Micro Search Engine</h2>
-      <p style="color: #666; font-size: 14px;">Cloud Node IP Mapped • Strictly Scoped to India (.in / Regional)</p>
+      <p style="color: #666; font-size: 14px;">Cloud Node IP Mapped • Strictly Scoped to India Knowledge</p>
       <form action="/search" method="GET" style="display: flex; gap: 10px; margin-top: 20px;">
-        <input type="text" name="q" placeholder="Search anything in India (e.g., tech news, policy, startups)..." required style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" />
+        <input type="text" name="q" placeholder="Search anything in India (e.g., history, tech, cities, economy)..." required style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;" />
         <button type="submit" style="background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Search</button>
       </form>
     </div>
   `);
 });
 
-// 2. Handle Search Query & Force India Scope via POST
+// 2. Handle Search Query & Force India Scope via Wikipedia API
 app.get('/search', async (req, res) => {
   const query = req.query.q;
-  const scopedQuery = `${query} site:.in`; 
+  // Automatically bind India context to every query
+  const scopedQuery = `${query} India`; 
 
-  let resultsHtml = `<p>No results found or connection error.</p>`;
+  let resultsHtml = `<p>No results found.</p>`;
 
   try {
-    // DuckDuckGo HTML endpoint requires a POST request with form data
-    const response = await fetch('https://html.duckduckgo.com/html/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-      },
-      body: `q=${encodeURIComponent(scopedQuery)}`
-    });
+    // Official public Wikipedia API endpoint (fast, reliable, never blocks cloud IPs)
+    const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(scopedQuery)}&format=json&origin=*`;
+    
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    
+    if (data.query && data.query.search && data.query.search.length > 0) {
+      let resultsList = '';
+      data.query.search.forEach(item => {
+        const title = item.title;
+        const snippet = item.snippet.replace(/(<([^>]+)>)/gi, ""); // Strip HTML tags from snippet
+        const link = `https://en.wikipedia.org/?curid=${item.pageid}`;
 
-    const htmlText = await response.text();
-    const $ = cheerio.load(htmlText);
-    let resultsList = '';
-
-    $('.result').each((i, element) => {
-      const title = $(element).find('.result__title').text().trim();
-      const link = $(element).find('.result__url').attr('href');
-      const snippet = $(element).find('.result__snippet').text().trim();
-
-      if (title && link) {
         resultsList += `
           <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
             <a href="${link}" target="_blank" style="font-size: 16px; color: #1a0dab; text-decoration: none; font-weight: bold;">${title}</a><br>
             <span style="font-size: 12px; color: #006621;">${link}</span>
-            <p style="font-size: 14px; color: #333; margin: 5px 0 0 0;">${snippet}</p>
+            <p style="font-size: 14px; color: #333; margin: 5px 0 0 0;">${snippet}...</p>
           </div>
         `;
-      }
-    });
-
-    if (resultsList) {
+      });
       resultsHtml = resultsList;
     }
   } catch (error) {
     console.error("Search execution error:", error);
+    resultsHtml = `<p>Error fetching search results.</p>`;
   }
 
   res.send(`
