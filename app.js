@@ -5,6 +5,7 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// 1. Simple input form served at your Render URL
 app.get('/', (req, res) => {
   res.send(`
     <div style="font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -12,23 +13,41 @@ app.get('/', (req, res) => {
       <p style="color: #666; font-size: 14px;">Running on authentic cloud data-center IP</p>
       <form action="/submit" method="POST">
         <textarea name="message" rows="6" style="width: 100%; padding: 10px; margin-bottom: 10px;" placeholder="Type your data, journal entry, or notes here..."></textarea><br>
-        <button type="submit" style="background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Send Data</button>
+        <button type="submit" style="background: #000; color: #fff; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Send to Email</button>
       </form>
     </div>
   `);
 });
 
-app.post('/submit', (req, res) => {
+// 2. Capture data and dispatch via Resend API
+app.post('/submit', async (req, res) => {
   const userMessage = req.body.message;
   
-  console.log("=== CAPTURED DATA ===");
-  console.log(userMessage);
-  console.log("=====================");
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'onboarding@resend.dev',
+        to: process.env.MY_EMAIL,
+        subject: '🔒 New Private Portal Submission',
+        html: `<h3>New Data Entry Received</h3><p style="font-size: 16px; background: #f9f9f9; padding: 15px; border-radius: 5px;">${userMessage}</p>`
+      })
+    });
+
+    const data = await response.json();
+    console.log("Email sent successfully:", data);
+  } catch (error) {
+    console.error("Failed to send email:", error);
+  }
 
   res.send(`
     <div style="font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-      <h3>Success! Data Captured.</h3>
-      <p>Your entry has been securely processed through the cloud node.</p>
+      <h3>Success! Dispatched to Inbox.</h3>
+      <p>Your entry has been securely routed through the cloud node and emailed to you.</p>
       <a href="/">Go Back</a>
     </div>
   `);
