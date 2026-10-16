@@ -5,7 +5,6 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 1. Simple input form served at your Render URL
 app.get('/', (req, res) => {
   res.send(`
     <div style="font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -19,7 +18,6 @@ app.get('/', (req, res) => {
   `);
 });
 
-// 2. Capture and handle the submitted data
 app.post('/submit', (req, res) => {
   const userMessage = req.body.message;
   
