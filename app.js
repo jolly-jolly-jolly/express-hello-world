@@ -20,23 +20,25 @@ app.get('/', (req, res) => {
   `);
 });
 
-// 2. Handle Search Query & Force India Scope
+// 2. Handle Search Query & Force India Scope via POST
 app.get('/search', async (req, res) => {
   const query = req.query.q;
-  // Automatically force site:.in and India regional context into the query
   const scopedQuery = `${query} site:.in`; 
 
   let resultsHtml = `<p>No results found or connection error.</p>`;
 
   try {
-    // Fetch results from a lightweight search source
-    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(scopedQuery)}`;
-    const response = await fetch(searchUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    // DuckDuckGo HTML endpoint requires a POST request with form data
+    const response = await fetch('https://html.duckduckgo.com/html/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      },
+      body: `q=${encodeURIComponent(scopedQuery)}`
     });
+
     const htmlText = await response.text();
-    
-    // Parse results using Cheerio
     const $ = cheerio.load(htmlText);
     let resultsList = '';
 
