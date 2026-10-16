@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -22,8 +23,6 @@ app.get('/', (req, res) => {
 app.post('/submit', (req, res) => {
   const userMessage = req.body.message;
   
-  // For now, this prints it securely in your Render logs. 
-  // Next, we can hook up your free email API here!
   console.log("=== CAPTURED DATA ===");
   console.log(userMessage);
   console.log("=====================");
@@ -37,5 +36,9 @@ app.post('/submit', (req, res) => {
   `);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+const server = app.listen(port, () => {
+  console.log(`Server running on port ${port}!`);
+});
+
+server.keepAliveTimeout = 120 * 1000;
+server.headersTimeout = 120 * 1000;
